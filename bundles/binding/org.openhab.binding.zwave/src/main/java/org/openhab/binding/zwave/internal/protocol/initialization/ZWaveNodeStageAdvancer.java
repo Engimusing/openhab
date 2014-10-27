@@ -25,7 +25,6 @@ import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveManufacture
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveMultiInstanceCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveNoOperationCommandClass;
 import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveVersionCommandClass;
-import org.openhab.binding.zwave.internal.protocol.commandclass.ZWaveWakeUpCommandClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +72,8 @@ public class ZWaveNodeStageAdvancer {
 					this.node.getNodeStage().getLabel(), targetStage.getLabel()));
 			return;
 		}
+		logger.debug(String.format("NODE %d: Setting stage. current = %s, requested = %s", this.node.getNodeId(),
+				this.node.getNodeStage().getLabel(), targetStage.getLabel()));
 
 		this.node.setQueryStageTimeStamp(Calendar.getInstance().getTime());
 		switch (this.node.getNodeStage()) {
@@ -327,12 +328,14 @@ public class ZWaveNodeStageAdvancer {
 		if (restoredNode == null)
 			return false;
 
+		// Sanity check the data from the file
 		if (restoredNode.getVersion() != this.node.getVersion()
+				|| restoredNode.getManufacturer() == Integer.MAX_VALUE
 				|| restoredNode.isListening() != this.node.isListening()
 				|| restoredNode.isFrequentlyListening() != this.node.isFrequentlyListening()
 				|| restoredNode.isRouting() != this.node.isRouting()
 				|| !restoredNode.getDeviceClass().equals(this.node.getDeviceClass())) {
-			logger.warn("NODE {}: Config file differs from controler information, ignoring config.",
+			logger.warn("NODE {}: Config file differs from controller information, ignoring config.",
 					this.node.getNodeId());
 			return false;
 		}
@@ -340,6 +343,8 @@ public class ZWaveNodeStageAdvancer {
 		this.node.setDeviceId(restoredNode.getDeviceId());
 		this.node.setDeviceType(restoredNode.getDeviceType());
 		this.node.setManufacturer(restoredNode.getManufacturer());
+		
+		this.node.setHealState(restoredNode.getHealState());
 
 		for (ZWaveCommandClass commandClass : restoredNode.getCommandClasses()) {
 			commandClass.setController(this.controller);
